@@ -1,25 +1,21 @@
-import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import DashboardLayout from "./DashboardLayout";
 import TodaysAttendance from "./TodaysAttendance";
 import MarkAttendance from "./MarkAttendance";
+import AttendanceTrends from "./AttendanceTrends";
 
 interface TeacherDashboardProps {
   user: User;
 }
 
 const TeacherDashboard = ({ user }: TeacherDashboardProps) => {
-  const [activeTab, setActiveTab] = useState<"view" | "mark">("view");
-
   return (
-    <DashboardLayout
-      user={user}
-      role="teacher"
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-    >
-      {activeTab === "view" && <TodaysAttendance isPrincipal={false} userId={user.id} />}
-      {activeTab === "mark" && <MarkAttendance userId={user.id} />}
+    <DashboardLayout user={user} role="teacher">
+      <div className="space-y-6">
+        <MarkAttendance userId={user.id} />
+        <TodaysAttendance isPrincipal={false} userId={user.id} />
+        <AttendanceTrends isPrincipal={false} userId={user.id} />
+      </div>
     </DashboardLayout>
   );
 };

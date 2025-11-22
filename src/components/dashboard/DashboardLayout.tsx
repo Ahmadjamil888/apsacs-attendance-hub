@@ -3,20 +3,16 @@ import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, LogOut, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { GraduationCap, LogOut } from "lucide-react";
 
 interface DashboardLayoutProps {
   user: User;
   role: "principal" | "teacher";
-  activeTab: string;
-  setActiveTab: (tab: any) => void;
   children: ReactNode;
 }
 
-const DashboardLayout = ({ user, role, activeTab, setActiveTab, children }: DashboardLayoutProps) => {
+const DashboardLayout = ({ user, role, children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -24,7 +20,7 @@ const DashboardLayout = ({ user, role, activeTab, setActiveTab, children }: Dash
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-4 py-4">
@@ -54,73 +50,10 @@ const DashboardLayout = ({ user, role, activeTab, setActiveTab, children }: Dash
                 <LogOut className="h-4 w-4" />
                 <span className="hidden md:inline">Logout</span>
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden"
-              >
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
             </div>
           </div>
         </div>
       </header>
-
-      {/* Navigation */}
-      <nav className={`bg-card border-b ${mobileMenuOpen ? "block" : "hidden md:block"}`}>
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row gap-2 md:gap-4 py-3">
-            {role === "principal" ? (
-              <>
-                <Button
-                  variant={activeTab === "attendance" ? "default" : "ghost"}
-                  onClick={() => {
-                    setActiveTab("attendance");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="justify-start"
-                >
-                  View Today's Attendance
-                </Button>
-                <Button
-                  variant={activeTab === "teachers" ? "default" : "ghost"}
-                  onClick={() => {
-                    setActiveTab("teachers");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="justify-start"
-                >
-                  Manage Teachers
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant={activeTab === "view" ? "default" : "ghost"}
-                  onClick={() => {
-                    setActiveTab("view");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="justify-start"
-                >
-                  View Attendance
-                </Button>
-                <Button
-                  variant={activeTab === "mark" ? "default" : "ghost"}
-                  onClick={() => {
-                    setActiveTab("mark");
-                    setMobileMenuOpen(false);
-                  }}
-                  className="justify-start"
-                >
-                  Mark Attendance
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-6">

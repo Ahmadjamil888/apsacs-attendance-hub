@@ -1,25 +1,19 @@
-import { useState } from "react";
 import { User } from "@supabase/supabase-js";
 import DashboardLayout from "./DashboardLayout";
 import TodaysAttendance from "./TodaysAttendance";
-import ManageTeachers from "./ManageTeachers";
+import AttendanceTrends from "./AttendanceTrends";
 
 interface PrincipalDashboardProps {
   user: User;
 }
 
 const PrincipalDashboard = ({ user }: PrincipalDashboardProps) => {
-  const [activeTab, setActiveTab] = useState<"attendance" | "teachers">("attendance");
-
   return (
-    <DashboardLayout
-      user={user}
-      role="principal"
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-    >
-      {activeTab === "attendance" && <TodaysAttendance isPrincipal={true} />}
-      {activeTab === "teachers" && <ManageTeachers />}
+    <DashboardLayout user={user} role="principal">
+      <div className="space-y-6">
+        <TodaysAttendance isPrincipal={true} />
+        <AttendanceTrends isPrincipal={true} />
+      </div>
     </DashboardLayout>
   );
 };
