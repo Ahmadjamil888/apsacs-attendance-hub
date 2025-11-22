@@ -26,13 +26,19 @@ const Dashboard = () => {
       // Fetch user role
       const {
         data: roleData,
-        error
-      } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).single();
+        error,
+      } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
       if (error) {
         console.error("Error fetching role:", error);
-      } else {
-        setUserRole(roleData?.role || null);
       }
+
+      const role = (roleData?.role as string | null) ?? "teacher";
+      setUserRole(role);
       setLoading(false);
     };
     checkAuth();
