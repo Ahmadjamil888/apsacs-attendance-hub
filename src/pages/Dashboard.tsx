@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import PrincipalDashboard from "@/components/dashboard/PrincipalDashboard";
 import TeacherDashboard from "@/components/dashboard/TeacherDashboard";
+import SuperadminDashboard from "@/components/dashboard/SuperadminDashboard";
 import { Loader2 } from "lucide-react";
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -63,8 +64,23 @@ const Dashboard = () => {
         <p className="text-muted-foreground">            Accessdenied. Please contact the administrator.</p>
       </div>;
   }
-  return <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10">
-      {userRole === "principal" ? <PrincipalDashboard user={user} /> : <TeacherDashboard user={user} />}
-    </div>;
+  const renderDashboard = () => {
+    switch (userRole) {
+      case "superadmin":
+        return <SuperadminDashboard user={user} />;
+      case "principal":
+        return <PrincipalDashboard user={user} />;
+      case "teacher":
+        return <TeacherDashboard user={user} />;
+      default:
+        return <TeacherDashboard user={user} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/10">
+      {renderDashboard()}
+    </div>
+  );
 };
 export default Dashboard;
