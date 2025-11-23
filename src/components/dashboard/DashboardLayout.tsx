@@ -7,7 +7,7 @@ import { GraduationCap, LogOut } from "lucide-react";
 
 interface DashboardLayoutProps {
   user: User;
-  role: "principal" | "teacher";
+  role: "principal" | "teacher" | "superadmin";
   children: ReactNode;
 }
 
@@ -32,7 +32,7 @@ const DashboardLayout = ({ user, role, children }: DashboardLayoutProps) => {
               <div>
                 <h1 className="text-xl md:text-2xl font-bold">APSACS</h1>
                 <p className="text-xs md:text-sm opacity-90">
-                  {role === "principal" ? "Principal Portal" : "Teacher Portal"}
+                  {role === "superadmin" ? "Super Admin Portal" : role === "principal" ? "Principal Portal" : "Teacher Portal"}
                 </p>
               </div>
             </div>
