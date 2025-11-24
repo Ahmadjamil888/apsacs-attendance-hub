@@ -185,8 +185,27 @@ const TeacherManagement = () => {
     setDeleting(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
       for (const teacher of teachers) {
-        await supabase.auth.admin.deleteUser(teacher.id);
+      const response = await fetch(`https://irtesgmumggpjxyfajnl.supabase.co/functions/v1/delete-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ userId: teacher.id }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          console.error(`Failed to delete ${teacher.email}:`, result.error);
+        }
       }
 
       toast({
@@ -208,8 +227,26 @@ const TeacherManagement = () => {
 
   const handleDeleteTeacher = async (teacherId: string, name: string) => {
     try {
-      const { error } = await supabase.auth.admin.deleteUser(teacherId);
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`https://irtesgmumggpjxyfajnl.supabase.co/functions/v1/delete-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ userId: teacherId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete teacher');
+      }
 
       toast({
         title: "Teacher deleted",
