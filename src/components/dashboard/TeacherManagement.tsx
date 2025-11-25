@@ -453,30 +453,35 @@ const TeacherManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="single-class">Assign Class (Optional)</Label>
-                    <Select value={singleClassId} onValueChange={setSingleClassId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a class" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classes.map((cls) => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            Class {cls.class_number}{cls.section}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {singleClassId && (
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="single-incharge"
-                        checked={singleIsIncharge}
-                        onCheckedChange={(checked) => setSingleIsIncharge(checked as boolean)}
-                      />
-                      <Label htmlFor="single-incharge">Make class incharge</Label>
+                    <Label>Class Assignments (Optional)</Label>
+                    <p className="text-sm text-muted-foreground">Select a class and mark as incharge if needed, then add more assignments below</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Select value={singleClassId} onValueChange={setSingleClassId}>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Select a class" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {classes.map((cls) => (
+                              <SelectItem key={cls.id} value={cls.id}>
+                                Class {cls.class_number}{cls.section}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {singleClassId && (
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="single-incharge"
+                              checked={singleIsIncharge}
+                              onCheckedChange={(checked) => setSingleIsIncharge(checked as boolean)}
+                            />
+                            <Label htmlFor="single-incharge" className="text-sm whitespace-nowrap">Incharge</Label>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
                 <DialogFooter>
                   <Button onClick={handleSingleCreate} disabled={creating}>
