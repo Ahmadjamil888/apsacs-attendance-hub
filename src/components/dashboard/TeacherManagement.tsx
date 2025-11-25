@@ -9,11 +9,24 @@ import { Loader2, Trash2, Edit2, UserPlus, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Teacher {
   id: string;
   email: string;
   full_name: string;
+}
+
+interface ClassInfo {
+  id: string;
+  class_number: number;
+  section: string;
+}
+
+interface TeacherAssignment {
+  class_id: string;
+  is_incharge: boolean;
 }
 
 const TeacherManagement = () => {
@@ -24,9 +37,13 @@ const TeacherManagement = () => {
   const [singleEmail, setSingleEmail] = useState("");
   const [singlePassword, setSinglePassword] = useState("");
   const [singleName, setSingleName] = useState("");
+  const [singleClassId, setSingleClassId] = useState("");
+  const [singleIsIncharge, setSingleIsIncharge] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
+  const [editAssignments, setEditAssignments] = useState<TeacherAssignment[]>([]);
+  const [classes, setClasses] = useState<ClassInfo[]>([]);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
@@ -71,7 +88,23 @@ const TeacherManagement = () => {
 
   useEffect(() => {
     fetchTeachers();
+    fetchClasses();
   }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, class_number, section")
+        .order("class_number", { ascending: true })
+        .order("section", { ascending: true });
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error: any) {
+      console.error("Error loading classes:", error);
+    }
+  };
 
   const handleBulkCreate = async () => {
     if (!bulkEmails.trim() || !bulkPassword.trim()) {
@@ -143,33 +176,52 @@ const TeacherManagement = () => {
     setCreating(true);
 
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: singleEmail,
-        password: singlePassword,
-        email_confirm: true,
-        user_metadata: {
-          full_name: singleName,
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`https://irtesgmumggpjxyfajnl.supabase.co/functions/v1/create-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
+        body: JSON.stringify({
+          email: singleEmail,
+          password: singlePassword,
+          fullName: singleName,
+          role: 'teacher',
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      if (data.user) {
-        await supabase.from('user_roles').insert({
-          user_id: data.user.id,
-          role: 'teacher',
-        });
-
-        toast({
-          title: "Teacher created",
-          description: `${singleName} has been added successfully`,
-        });
-
-        setSingleEmail("");
-        setSinglePassword("");
-        setSingleName("");
-        fetchTeachers();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create teacher');
       }
+
+      // Assign class if selected
+      if (singleClassId && result.userId) {
+        await supabase.from('teacher_assignments').insert({
+          teacher_id: result.userId,
+          class_id: singleClassId,
+          is_incharge: singleIsIncharge,
+        });
+      }
+
+      toast({
+        title: "Teacher created",
+        description: `${singleName} has been added successfully`,
+      });
+
+      setSingleEmail("");
+      setSinglePassword("");
+      setSingleName("");
+      setSingleClassId("");
+      setSingleIsIncharge(false);
+      fetchTeachers();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -263,6 +315,20 @@ const TeacherManagement = () => {
     }
   };
 
+  const fetchTeacherAssignments = async (teacherId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('teacher_assignments')
+        .select('class_id, is_incharge')
+        .eq('teacher_id', teacherId);
+
+      if (error) throw error;
+      setEditAssignments(data || []);
+    } catch (error: any) {
+      console.error("Error loading assignments:", error);
+    }
+  };
+
   const handleEditTeacher = async () => {
     if (!editingTeacher || !editName.trim() || !editEmail.trim()) {
       toast({
@@ -274,7 +340,8 @@ const TeacherManagement = () => {
     }
 
     try {
-      const { error } = await supabase
+      // Update profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: editName,
@@ -282,7 +349,28 @@ const TeacherManagement = () => {
         })
         .eq('id', editingTeacher.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Delete existing assignments
+      await supabase
+        .from('teacher_assignments')
+        .delete()
+        .eq('teacher_id', editingTeacher.id);
+
+      // Insert updated assignments
+      if (editAssignments.length > 0) {
+        const { error: assignError } = await supabase
+          .from('teacher_assignments')
+          .insert(
+            editAssignments.map(a => ({
+              teacher_id: editingTeacher.id,
+              class_id: a.class_id,
+              is_incharge: a.is_incharge,
+            }))
+          );
+
+        if (assignError) throw assignError;
+      }
 
       toast({
         title: "Teacher updated",
@@ -364,6 +452,31 @@ const TeacherManagement = () => {
                       placeholder="Secure password"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="single-class">Assign Class (Optional)</Label>
+                    <Select value={singleClassId} onValueChange={setSingleClassId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            Class {cls.class_number}{cls.section}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {singleClassId && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="single-incharge"
+                        checked={singleIsIncharge}
+                        onCheckedChange={(checked) => setSingleIsIncharge(checked as boolean)}
+                      />
+                      <Label htmlFor="single-incharge">Make class incharge</Label>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button onClick={handleSingleCreate} disabled={creating}>
@@ -491,15 +604,16 @@ const TeacherManagement = () => {
                             setEditingTeacher(teacher);
                             setEditName(teacher.full_name);
                             setEditEmail(teacher.email);
+                            fetchTeacherAssignments(teacher.id);
                           }}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent>
+                      <DialogContent className="max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Edit Teacher</DialogTitle>
-                          <DialogDescription>Update teacher information</DialogDescription>
+                          <DialogDescription>Update teacher information and class assignments</DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
                           <div className="space-y-2">
@@ -518,6 +632,64 @@ const TeacherManagement = () => {
                               value={editEmail}
                               onChange={(e) => setEditEmail(e.target.value)}
                             />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Class Assignments</Label>
+                            <div className="space-y-2">
+                              {editAssignments.map((assignment, index) => (
+                                <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                                  <Select
+                                    value={assignment.class_id}
+                                    onValueChange={(value) => {
+                                      const newAssignments = [...editAssignments];
+                                      newAssignments[index].class_id = value;
+                                      setEditAssignments(newAssignments);
+                                    }}
+                                  >
+                                    <SelectTrigger className="flex-1">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {classes.map((cls) => (
+                                        <SelectItem key={cls.id} value={cls.id}>
+                                          Class {cls.class_number}{cls.section}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                      checked={assignment.is_incharge}
+                                      onCheckedChange={(checked) => {
+                                        const newAssignments = [...editAssignments];
+                                        newAssignments[index].is_incharge = checked as boolean;
+                                        setEditAssignments(newAssignments);
+                                      }}
+                                    />
+                                    <Label className="text-sm">Incharge</Label>
+                                  </div>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      setEditAssignments(editAssignments.filter((_, i) => i !== index));
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ))}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditAssignments([...editAssignments, { class_id: classes[0]?.id || '', is_incharge: false }]);
+                                }}
+                                disabled={classes.length === 0}
+                              >
+                                Add Class Assignment
+                              </Button>
+                            </div>
                           </div>
                         </div>
                         <DialogFooter>

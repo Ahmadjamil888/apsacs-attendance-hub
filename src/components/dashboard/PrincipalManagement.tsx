@@ -79,33 +79,41 @@ const PrincipalManagement = () => {
     setCreating(true);
 
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
-        email: singleEmail,
-        password: singlePassword,
-        email_confirm: true,
-        user_metadata: {
-          full_name: singleName,
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`https://irtesgmumggpjxyfajnl.supabase.co/functions/v1/create-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
+        body: JSON.stringify({
+          email: singleEmail,
+          password: singlePassword,
+          fullName: singleName,
+          role: 'principal',
+        }),
       });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      if (data.user) {
-        await supabase.from('user_roles').insert({
-          user_id: data.user.id,
-          role: 'principal',
-        });
-
-        toast({
-          title: "Principal created",
-          description: `${singleName} has been added successfully`,
-        });
-
-        setSingleEmail("");
-        setSinglePassword("");
-        setSingleName("");
-        fetchPrincipals();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create principal');
       }
+
+      toast({
+        title: "Principal created",
+        description: `${singleName} has been added successfully`,
+      });
+
+      setSingleEmail("");
+      setSinglePassword("");
+      setSingleName("");
+      fetchPrincipals();
     } catch (error: any) {
       toast({
         variant: "destructive",
