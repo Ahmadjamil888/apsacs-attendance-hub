@@ -1,21 +1,17 @@
 import { User } from "@supabase/supabase-js";
 import DashboardLayout from "./DashboardLayout";
+import TeacherManagement from "./TeacherManagement";
 import TodaysAttendance from "./TodaysAttendance";
 import AttendanceTrends from "./AttendanceTrends";
-import TeacherManagement from "./TeacherManagement";
-import PrincipalManagement from "./PrincipalManagement";
-import AdminManagement from "./AdminManagement";
 
-interface SuperadminDashboardProps {
+interface AdminDashboardProps {
   user: User;
 }
 
-const SuperadminDashboard = ({ user }: SuperadminDashboardProps) => {
+const AdminDashboard = ({ user }: AdminDashboardProps) => {
   return (
-    <DashboardLayout user={user} role="superadmin">
+    <DashboardLayout user={user} role="admin">
       <div className="space-y-6">
-        <AdminManagement />
-        <PrincipalManagement />
         <TeacherManagement />
         <TodaysAttendance isPrincipal={true} />
         <AttendanceTrends isPrincipal={true} />
@@ -24,4 +20,4 @@ const SuperadminDashboard = ({ user }: SuperadminDashboardProps) => {
   );
 };
 
-export default SuperadminDashboard;
+export default AdminDashboard;
