@@ -11,10 +11,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, password, fullName, role } = await req.json();
-
-    console.log('Creating user:', { email, role });
-
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -25,6 +21,34 @@ Deno.serve(async (req) => {
         }
       }
     );
+
+    // Verify the calling user has permission
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: callingUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !callingUser) {
+      throw new Error('Unauthorized');
+    }
+
+    // Check if calling user is superadmin or admin
+    const { data: callerRoles } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', callingUser.id)
+      .single();
+
+    if (!callerRoles || (callerRoles.role !== 'superadmin' && callerRoles.role !== 'admin')) {
+      throw new Error('Only superadmins and admins can create users');
+    }
+
+    const { email, password, fullName, role } = await req.json();
+
+    console.log('Creating user:', { email, role });
 
     // Create user
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({

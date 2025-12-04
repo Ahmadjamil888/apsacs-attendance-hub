@@ -5,6 +5,7 @@ import { User } from "@supabase/supabase-js";
 import PrincipalDashboard from "@/components/dashboard/PrincipalDashboard";
 import TeacherDashboard from "@/components/dashboard/TeacherDashboard";
 import SuperadminDashboard from "@/components/dashboard/SuperadminDashboard";
+import AdminDashboard from "@/components/dashboard/AdminDashboard";
 import { Loader2 } from "lucide-react";
 const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -68,6 +69,8 @@ const Dashboard = () => {
     switch (userRole) {
       case "superadmin":
         return <SuperadminDashboard user={user} />;
+      case "admin":
+        return <AdminDashboard user={user} />;
       case "principal":
         return <PrincipalDashboard user={user} />;
       case "teacher":

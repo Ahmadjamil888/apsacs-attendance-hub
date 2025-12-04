@@ -35,15 +35,15 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    // Check if user is superadmin
+    // Check if user is superadmin or admin
     const { data: roles } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single()
 
-    if (!roles || roles.role !== 'superadmin') {
-      throw new Error('Only superadmins can delete users')
+    if (!roles || (roles.role !== 'superadmin' && roles.role !== 'admin')) {
+      throw new Error('Only superadmins and admins can delete users')
     }
 
     const { userId } = await req.json()
